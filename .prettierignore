@@ -1,0 +1,2 @@
+# Don't format the swagger assets
+grpc_gateway_wrapper/resources/swagger_serve/

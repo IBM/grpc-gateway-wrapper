@@ -1,0 +1,20 @@
+working*
+build
+*.pyc
+__pycache__
+dist/
+*.egg-info
+.idea
+reports
+htmlcov
+.coverage
+.coverage.*
+
+# IDEs
+.vscode/
+.idea/
+
+# Virtual Env
+venv/
+# Mac personalization files
+*.DS_Store

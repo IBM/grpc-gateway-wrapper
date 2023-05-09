@@ -1,0 +1,13 @@
+coverage==6.2
+pytest==6.2.3
+pytest-cov==2.10.1
+pytest-html==3.1.1
+
+# Because logging is good!
+alchemy-logging>=1.1.1,<2
+
+# For integration tests
+grpcio==1.*
+grpcio_tools==1.*
+cryptography==38.*
+requests==2.*

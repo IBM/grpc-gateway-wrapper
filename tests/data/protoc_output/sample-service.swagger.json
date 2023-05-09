@@ -1,0 +1,96 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "sample-service.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "SampleService"
+    }
+  ],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "paths": {
+    "/v1/sample/SampleService/Greeting": {
+      "post": {
+        "description": "Request a greeting for the given name",
+        "operationId": "SampleService_Greeting",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sampleResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/sampleRequest"
+            }
+          }
+        ],
+        "tags": ["SampleService"]
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "sampleRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "(optional) The  name to request"
+        }
+      },
+      "description": "This message is a request!"
+    },
+    "sampleResponse": {
+      "type": "object",
+      "properties": {
+        "greeting": {
+          "type": "string",
+          "description": "The greeting string"
+        }
+      },
+      "description": "This message is the response container with the greeting"
+    }
+  }
+}

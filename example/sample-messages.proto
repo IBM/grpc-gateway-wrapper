@@ -1,0 +1,17 @@
+syntax = "proto3";
+package sample;
+
+/**
+ * This message is a request!
+ */
+message Request {
+    string name = 1; // (optional) The  name to request
+}
+
+/**
+ * This message is the response container with the greeting
+ */
+message Response {
+    // The greeting string
+    optional string greeting = 1;
+}

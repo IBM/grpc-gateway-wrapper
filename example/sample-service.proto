@@ -1,0 +1,12 @@
+syntax = "proto3";
+package sample.proto.v1;
+
+import "sample-messages.proto";
+
+/**
+ * This service implements a simple Hello World greeter
+ */
+service SampleService {
+    // Request a greeting for the given name
+    rpc Greeting(Request) returns (Response) {}
+}

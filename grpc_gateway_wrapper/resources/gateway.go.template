@@ -1,0 +1,147 @@
+package main
+
+import (
+	// Standard
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"path"
+	"strings"
+
+	// Third Party
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/namsral/flag"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+
+	// Local
+{{PACKAGE_INCLUDES}}
+)
+
+// Command line args
+var (
+	proxyEndpoint = flag.String("proxy_endpoint", "localhost:8004", "Endpoint for the server being proxied to")
+	proxyCert = flag.String("proxy_cert", "", "Cert to use when making the proxy rpc call")
+	serveCert = flag.String("serve_cert", "", "Public cert to use when serving proxy calls")
+	serveKey = flag.String("serve_key", "", "Private key to use when serving proxy calls")
+	proxyMtlsCert = flag.String("proxy_mtls_cert", "", "Cert file to use when making proxy mTLS calls")
+	proxyMtlsKey = flag.String("proxy_mtls_key", "", "Key file to use when making proxy mTLS calls")
+	mtlsClientCA = flag.String("mtls_client_ca", "", "CA certificate to use to enable mutual TLS")
+	proxyCertHname = flag.String("proxy_cert_hname", "", "Hostname override for proxy cert")
+	proxyNoCertVal = flag.Bool("proxy_no_cert_val", false, "Ignore certificate validation")
+	servePort = flag.Int("serve_port", 8080, "Port to serve the gateway on")
+	swaggerPath = flag.String("swagger_path", "/swagger", "Absolute path to swagger assets")
+)
+
+// swaggerServer returns swagger specification files located under "/swagger/"
+func swaggerServer() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		p := strings.TrimPrefix(r.URL.Path, "/swagger/")
+		p = path.Join(*swaggerPath, p)
+		log.Printf("Serving %s: %s\n", r.URL.Path, p)
+		http.ServeFile(w, r, p)
+	}
+}
+
+func run() error {
+	flag.Parse()
+
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	mux := runtime.NewServeMux()
+
+	var channelCreds grpc.DialOption
+	if *proxyCert != "" {
+		if *proxyMtlsCert != "" && *proxyMtlsKey != "" {
+			log.Printf("Loading mtls proxy key/cert [%s/%s]\n", *proxyMtlsKey, *proxyMtlsCert)
+			if cert, err := tls.LoadX509KeyPair(*proxyMtlsCert, *proxyMtlsKey); nil != err {
+				panic(fmt.Sprintf("Invalid mtls proxy key/cert pair [%s/%s]: %s", *proxyMtlsKey, *proxyMtlsCert, err))
+			} else {
+				if b, err := ioutil.ReadFile(*proxyCert); nil != err {
+					panic(fmt.Sprintf("Invalid proxy cert pair [%s]: %s", *proxyCert, err))
+				} else {
+					cp := x509.NewCertPool()
+					if !cp.AppendCertsFromPEM(b) {
+						panic(fmt.Sprintf("credentials: failed to append certificates"))
+					} else {
+						creds := credentials.NewTLS(&tls.Config{
+							RootCAs: cp,
+							Certificates: []tls.Certificate{cert},
+						})
+						channelCreds = grpc.WithTransportCredentials(creds)
+					}
+				}
+			}
+		} else {
+			log.Printf("Loading proxy cert [%s]\n", *proxyCert)
+			if creds, err := credentials.NewClientTLSFromFile(*proxyCert, ""); nil != err {
+				panic(fmt.Sprintf("Invalid cert file [%s]: %s", *proxyCert, err))
+			} else {
+				if *proxyCertHname != "" {
+					log.Printf("Overriding proxy cert hostname [%s]\n", *proxyCertHname)
+					creds.OverrideServerName(*proxyCertHname)
+				}
+				channelCreds = grpc.WithTransportCredentials(creds)
+			}
+		}
+	} else if *proxyNoCertVal {
+		log.Printf("Running with no client validation\n")
+		creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})
+		channelCreds = grpc.WithTransportCredentials(creds)
+	} else {
+		log.Printf("Running with INSECURE credentials\n")
+		channelCreds = grpc.WithInsecure()
+	}
+	opts := []grpc.DialOption{channelCreds}
+
+{{SERVICE_REGISTRATIONS}}
+
+	topmux := http.NewServeMux()
+	topmux.HandleFunc("/swagger/", swaggerServer())
+	topmux.Handle("/", mux)
+	serveUri := fmt.Sprintf(":%d", *servePort)
+
+	// If TLS is enabled set up to run with it
+	if *serveCert != "" && *serveKey != "" {
+		log.Printf("Serving proxy calls with TLS\n")
+
+		// If mTLS is enabled, create a server with the tls config
+		if *mtlsClientCA != "" {
+			if caCert, err := ioutil.ReadFile(*mtlsClientCA); nil != err {
+				log.Fatal(err)
+			} else {
+				caCertPool := x509.NewCertPool()
+				caCertPool.AppendCertsFromPEM(caCert)
+				tlsConfig := &tls.Config{
+					ClientCAs: caCertPool,
+					ClientAuth: tls.RequireAndVerifyClientCert,
+				}
+				tlsConfig.BuildNameToCertificate()
+				server := &http.Server{
+					Addr: serveUri,
+					TLSConfig: tlsConfig,
+					Handler: topmux,
+				}
+				log.Printf("Serving with mTLS\n")
+				return server.ListenAndServeTLS(*serveCert, *serveKey)
+			}
+		}
+
+		// If mTLS not enabled, just run regular TLS
+		return http.ListenAndServeTLS(serveUri, *serveCert, *serveKey, topmux)
+	}
+
+	// Otherwise serve with no TLS
+	log.Printf("Serving proxy calls INSECURE\n")
+	return http.ListenAndServe(serveUri, topmux)
+}
+
+func main() {
+	log.Fatal(run())
+}
