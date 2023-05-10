@@ -1,4 +1,5 @@
 # grpc-gateway-wrapper
+
 The goal of this project is to generates a REST gateway wrapper layer for a grpc server with minimal customization, along with `swagger` definitions conforming to `OpenAPI 2.0`.
 
 The `gRPC-gateway`(https://github.com/grpc-ecosystem/grpc-gateway) is a plugin of the Google protocol buffers compiler protoc. It reads protobuf service definitions and generates a reverse-proxy server which translates a RESTful HTTP API into gRPC.

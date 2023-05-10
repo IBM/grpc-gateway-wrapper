@@ -1,67 +1,70 @@
-## deps ########################################################################
-ARG PYTHON_TAG=py39
-ARG OS=ubi8
-ARG BASE_IMAGE_TAG=latest
+## Base dependencies ########################################################################
+# ARG PYTHON_TAG=py39
 ARG GO_VERSION=1.19
 ARG PROTOBUF_VERSION=3.15.8
 
-FROM golang:${GO_VERSION} as development
+FROM golang:${GO_VERSION} as base
 
 ARG PROTOBUF_VERSION
-COPY requirements_test.txt /requirements_test.txt
+
+# This image is only for building, so we run as root
+WORKDIR /src
+
+COPY requirements_test.txt /src/requirements_test.txt
 RUN true && \
-    apt-get update && \
+    apt-get update -y && \
+    apt-get install make git -y && \
+    apt-get clean autoclean && \
+    apt-get autoremove --yes && \
     apt-get install -y \
         unzip \
         python3.9 \
         python3-pip && \
     apt-get upgrade -y && \
-    pip3 install -r /requirements_test.txt && \
+    pip install pip --upgrade && \
+    pip install twine pre-commit && \
+    pip3 install -r /src/requirements_test.txt && \
     true
 
-ARG PROTOBUF_VERSION=3.15.8
+# Install protoc
 RUN curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip
 RUN unzip protoc-3.15.8-linux-x86_64.zip -d /protoc
 ENV PATH=${PATH}:/protoc/bin
 
-## build #######################################################################
-FROM development as build
-WORKDIR /app
-ARG PYTHON_TAG
-ARG COMPONENT_VERSION
-
-# Install twine for pushing the wheel to a pypi repository later
-RUN pip3 install twine
-
-COPY grpc_gateway_wrapper/ ./grpc_gateway_wrapper
-COPY setup.py /app/setup.py
-
-RUN python3 setup.py bdist_wheel --python-tag ${PYTHON_TAG} clean --all
-
-RUN pip3 install --no-cache-dir /app/dist/grpc_gateway_wrapper*.whl
-
 ## Test ########################################################################
-FROM build as test
-COPY example /app/example
-RUN grpc-gateway-wrapper --proto_files /app/example/*.proto \
-        --metadata mm-model-id \
-        --output_dir . \
-        --install_deps
+FROM base as test
 
-## release container #####################################################################
-FROM development as release
-
-# Create a release image without any of the intermediate source files
-
+# Run unit tests
+COPY . /src
 RUN true && \
-    apt-get update && \
-    apt-get upgrade -y && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* && \
+    ./scripts/run_tests.sh && \
+    RELEASE_DRY_RUN=true RELEASE_VERSION=0.0.0 \
+        ./scripts/publish.sh && \
+    ./scripts/fmt.sh && \
     true
 
-COPY --from=build /usr/local /usr/local
+## Release #####################################################################
+#
+# This phase builds the release and publishes it to pypi
+##
+FROM test as release
+ARG PYPI_TOKEN
+ARG RELEASE_VERSION
+ARG RELEASE_DRY_RUN
+RUN ./scripts/publish.sh
 
-# Sanity check: We can import the installed wheel
-RUN grpc-gateway-wrapper --help
-ENTRYPOINT ["grpc-gateway-wrapper"]
+## Release Test ################################################################
+#
+# This phase installs the indicated version from PyPi and runs the unit tests
+# against the installed version.
+##
+FROM base as release_test
+ARG RELEASE_VERSION
+ARG RELEASE_DRY_RUN
+COPY ./tests /src/tests
+COPY ./scripts/run_tests.sh /src/scripts/run_tests.sh
+COPY ./scripts/install_release.sh /src/scripts/install_release.sh
+RUN true && \
+    ./scripts/install_release.sh && \
+    ./scripts/run_tests.sh && \
+    true

@@ -10,7 +10,7 @@ repos:
         exclude: imports
         additional_dependencies: ["click==8.0.4"]
   - repo: https://github.com/PyCQA/isort
-    rev: 5.6.3
+    rev: 5.11.5
     hooks:
       - id: isort
         exclude: imports

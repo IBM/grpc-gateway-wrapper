@@ -1,0 +1,15 @@
+# This workflow runs the python unit tests
+name: tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+jobs:
+  build-39:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run unit tests
+        run: docker build . --target=test --build-arg PYTHON_VERSION=3.9

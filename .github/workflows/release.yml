@@ -1,0 +1,16 @@
+# This workflow runs the publication to pypi
+name: release
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+jobs:
+  build-39:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run release
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+          PYTHON_VERSION: "3.9"
+        run: REF="${{ github.ref }}" ./scripts/release.sh
