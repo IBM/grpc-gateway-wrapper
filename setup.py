@@ -30,13 +30,19 @@ import os
 # Third Party
 import setuptools
 
-# get version of library
-VERSION = os.getenv("COMPONENT_VERSION", "0.0.0")
+# Read the README to provide the long description
+python_base = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(python_base, "README.md"), "r") as handle:
+    long_description = handle.read()
+
+# Read version from the env
+version = os.environ.get("RELEASE_VERSION")
+assert version is not None, "Must set RELEASE_VERSION"
 
 
 def package_files(directory):
     paths = []
-    for (path, directories, filenames) in os.walk(directory):
+    for (path, _, filenames) in os.walk(directory):
         for filename in filenames:
             paths.append(os.path.join("..", path, filename))
     return paths
@@ -47,9 +53,11 @@ extra_files = package_files(os.path.join("grpc_gateway_wrapper", "resources"))
 setuptools.setup(
     name="grpc_gateway_wrapper",
     author="IBM",
-    version=VERSION,
+    version=version,
     license="MIT",
     description="GRPC Gateway Wrapper",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     python_requires="~=3.8",
     packages=setuptools.find_packages(include=("grpc_gateway_wrapper",)),
     package_data={"grpc_gateway_wrapper": extra_files},
