@@ -8,7 +8,7 @@ rm -rf build dist *.egg-info/
 
 # Build
 py_tag="py$(echo $PYTHON_VERSION | cut -d'.' -f 1,2 | sed 's,\.,,g')"
-./scripts/build_wheel.sh -v $RELEASE_VERSION -p $py_tag
+./scripts/build_wheel.sh -v $RELEASE_VERSION
 
 # Publish to PyPi
 if [ "${RELEASE_DRY_RUN}" != "true" ]

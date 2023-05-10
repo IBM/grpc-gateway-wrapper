@@ -12,4 +12,3 @@ docker build . \
     --build-arg RELEASE_VERSION=$tag \
     --build-arg PYPI_TOKEN=${PYPI_TOKEN:-""} \
     --build-arg RELEASE_DRY_RUN=${RELEASE_DRY_RUN:-"false"} \
-    --build-arg PYTHON_VERSION=${PYTHON_VERSION:-"3.9"}

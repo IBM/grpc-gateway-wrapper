@@ -1,5 +1,4 @@
 ## Base dependencies ########################################################################
-# ARG PYTHON_TAG=py39
 ARG GO_VERSION=1.19
 ARG PROTOBUF_VERSION=3.15.8
 

@@ -50,6 +50,7 @@ setuptools.setup(
     version=VERSION,
     license="MIT",
     description="GRPC Gateway Wrapper",
+    python_requires="~=3.8",
     packages=setuptools.find_packages(include=("grpc_gateway_wrapper",)),
     package_data={"grpc_gateway_wrapper": extra_files},
     entry_points={
