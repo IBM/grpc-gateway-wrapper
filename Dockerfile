@@ -17,7 +17,6 @@ RUN true && \
     apt-get autoremove --yes && \
     apt-get install -y \
         unzip \
-        python3.9 \
         python3-pip && \
     apt-get upgrade -y && \
     pip install pip --upgrade && \
