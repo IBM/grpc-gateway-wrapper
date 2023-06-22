@@ -1,5 +1,5 @@
 ## Base dependencies ########################################################################
-ARG GO_VERSION=1.19
+ARG GO_VERSION=1.20
 ARG PROTOBUF_VERSION=3.15.8
 
 FROM golang:${GO_VERSION} as base
