@@ -17,8 +17,15 @@ RUN true && \
     apt-get autoremove --yes && \
     apt-get install -y \
         unzip \
-        python3-pip && \
+        python3.11 \
+        python3-pip \
+        python3-venv && \
     apt-get upgrade -y && \
+    true
+# Follow PEP 668 - Marking Python base environments as “externally managed”.
+RUN true && \
+    python3 -m venv .venv && \
+    source .venv/bin/activate && \
     pip install pip --upgrade && \
     pip install twine pre-commit && \
     pip3 install -r /src/requirements_test.txt && \
