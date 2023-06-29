@@ -59,7 +59,6 @@ def run_protoc(proto_files: Iterable[str], out_flags: Dict[str, str]):
 
 
 def main():
-
     # Command line args
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -108,6 +107,13 @@ def main():
         "-l",
         default=os.environ.get("LOG_LEVEL", "info"),
         help="Log level for informational logging",
+    )
+    parser.add_argument(
+        "--no_json_names",
+        "-j",
+        action="store_true",
+        default=False,
+        help="Disables the use of json names (camelCase) for fields. When enabled json_names_for_fields=false is passed to the protoc call",
     )
 
     # Parse command line args
@@ -193,6 +199,9 @@ def main():
     gateway_opt_str = (
         f"logtostderr=true,grpc_api_configuration={service_json}:{working_dir}"
     )
+    openapi_opt_str = f"openapi_configuration={openapi_json}" + (
+        ",json_names_for_fields=false" if args.no_json_names else ""
+    )
     run_protoc(
         workdir_proto_files,
         {
@@ -200,7 +209,7 @@ def main():
             "go-grpc_out": working_dir,
             "grpc-gateway_out": gateway_opt_str,
             "openapiv2_out": gateway_opt_str,
-            "openapiv2_opt": f"openapi_configuration={openapi_json}",
+            "openapiv2_opt": openapi_opt_str,
         },
     )
 
