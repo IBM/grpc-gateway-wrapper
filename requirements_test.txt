@@ -11,3 +11,6 @@ grpcio==1.*
 grpcio_tools==1.*
 cryptography==38.*
 requests==2.*
+
+# Needed to build the wheel
+wheel
